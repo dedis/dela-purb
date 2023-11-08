@@ -21,6 +21,7 @@ type purbDB struct {
 	dbFilePath string
 	db         db
 	purbIsOn   bool
+	blob       *Blob
 }
 
 // NewDB opens a new database to the given file.
@@ -40,21 +41,30 @@ func NewDB(path string, purbIsOn bool) (DB, error) {
 		return nil, xerrors.Errorf("failed to read DB file: %v", err)
 	}
 
-	dp := &purbDB{
+	p := &purbDB{
 		dbFilePath: path,
 		db:         make(db),
 		purbIsOn:   purbIsOn,
+		blob:       NewBlob(),
 	}
 
-	dp.Lock() // unlocked in Close()
+	p.Lock() // unlocked in Close()
 
 	buffer := bytes.NewBuffer(data)
-	err = dp.deserialize(buffer)
+	if purbIsOn {
+		decrypted, err := p.blob.Decode(data)
+		if err != nil {
+			return nil, err
+		}
+		buffer.Write(decrypted)
+	}
+
+	err = p.deserialize(buffer)
 	if fmt.Sprint(err) != "EOF" {
 		return nil, xerrors.Errorf("failed to initialize new DB file: %v", err)
 	}
 
-	return dp, nil
+	return p, nil
 }
 
 // View implements kv.DB. It executes the read-only transaction in the context
@@ -74,7 +84,6 @@ func (p *purbDB) View(fn func(ReadableTx) error) error {
 // Update implements kv.DB. It executes the writable transaction in the context
 // of the database.
 func (p *purbDB) Update(fn func(WritableTx) error) error {
-
 	tx := &dpTx{db: p.db}
 
 	err := fn(tx)
@@ -122,7 +131,11 @@ func (p *purbDB) savePurbified() error {
 	}
 
 	if p.purbIsOn {
-		panic("Not implemented")
+		blob, err := p.blob.Encode(data.Bytes())
+		if err != nil {
+			return xerrors.Errorf("failed to purbify DB file: %v", err)
+		}
+		data.Write(blob)
 	}
 
 	err = os.WriteFile(p.dbFilePath, data.Bytes(), 0755)
