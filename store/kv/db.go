@@ -10,16 +10,25 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// bucket   // key   // value
-type db map[string]*dpBucket
+type privateRWMutex struct {
+	sync.RWMutex
+}
+
+type bucketDb struct {
+	privateRWMutex
+	Db map[string]*dpBucket
+}
+
+func newBucketDb() bucketDb {
+	return bucketDb{Db: make(map[string]*dpBucket)}
+}
 
 // DB is the DELA/PURB implementation of the KV database.
 //
 // - implements kv.DB
 type purbDB struct {
-	sync.Mutex
 	dbFilePath string
-	db         db
+	db         bucketDb
 	purbIsOn   bool
 	blob       *Blob
 }
@@ -42,12 +51,10 @@ func NewDB(path string, purbIsOn bool) (DB, error) {
 
 	p := &purbDB{
 		dbFilePath: path,
-		db:         make(db),
+		db:         newBucketDb(),
 		purbIsOn:   purbIsOn,
 		blob:       NewBlob(),
 	}
-
-	p.Lock() // unlocked in Close()
 
 	buffer := bytes.NewBuffer(data)
 	if purbIsOn {
@@ -69,7 +76,7 @@ func NewDB(path string, purbIsOn bool) (DB, error) {
 // View implements kv.DB. It executes the read-only transaction in the context
 // of the database.
 func (p *purbDB) View(fn func(ReadableTx) error) error {
-	tx := &dpTx{db: p.db}
+	tx := &dpTx{db: p.db, new: newBucketDb()}
 
 	err := fn(tx)
 
@@ -83,12 +90,19 @@ func (p *purbDB) View(fn func(ReadableTx) error) error {
 // Update implements kv.DB. It executes the writable transaction in the context
 // of the database.
 func (p *purbDB) Update(fn func(WritableTx) error) error {
-	tx := &dpTx{db: p.db}
+	tx := &dpTx{db: p.db, new: newBucketDb()}
 
 	err := fn(tx)
 	if err != nil {
 		return err
 	}
+
+	p.db.Lock()
+	for k, v := range tx.new.Db {
+		p.db.Db[k] = v
+	}
+
+	p.db.Unlock()
 
 	err = p.savePurbified()
 	if err != nil {
@@ -105,7 +119,6 @@ func (p *purbDB) Update(fn func(WritableTx) error) error {
 // Close implements kv.DB. It closes the database. Any view or update call will
 // result in an error after this function is called.
 func (p *purbDB) Close() error {
-	p.Unlock() // locked in NewDB()
 	return nil
 }
 
@@ -116,6 +129,8 @@ func (p *purbDB) serialize() (bytes.Buffer, error) {
 	var data bytes.Buffer
 	encoder := gob.NewEncoder(&data)
 
+	p.db.RLock()
+	defer p.db.RUnlock()
 	err := encoder.Encode(p.db)
 	return data, err
 }
@@ -125,7 +140,7 @@ func (p *purbDB) deserialize(input *bytes.Buffer) error {
 
 	err := decoder.Decode(&p.db)
 
-	for _, x := range p.db {
+	for _, x := range p.db.Db {
 		x.updateIndex()
 	}
 

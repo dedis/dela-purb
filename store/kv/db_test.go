@@ -10,15 +10,15 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const delaTestDir = "dela-core-Kv"
+const purbDbTestDir = "purb-Db-kv"
 
 func TestPurbDB_OpenClose(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	err = db.Close()
@@ -26,12 +26,12 @@ func TestPurbDB_OpenClose(t *testing.T) {
 }
 
 func TestPurbDB_UpdateAndView(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	ch := make(chan struct{})
@@ -64,12 +64,12 @@ func TestPurbDB_UpdateAndView(t *testing.T) {
 }
 
 func TestPurbTx_GetBucket(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	err = db.Update(func(tx WritableTx) error {
@@ -88,12 +88,12 @@ func TestPurbTx_GetBucket(t *testing.T) {
 }
 
 func TestPurbBucket_Get_Set_Delete(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -120,12 +120,12 @@ func TestPurbBucket_Get_Set_Delete(t *testing.T) {
 }
 
 func TestPurbBucket_ForEach(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -147,13 +147,111 @@ func TestPurbBucket_ForEach(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestPurbBucket_Scan(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
+func TestPurbBucket_AbortedForEach(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "test.db"), false)
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	require.NoError(t, err)
+
+	// set some values in the DB
+	err = db.Update(func(txn WritableTx) error {
+		b, err := txn.GetBucketOrCreate([]byte("test"))
+		require.NoError(t, err)
+
+		require.NoError(t, b.Set([]byte{2}, []byte{2}))
+		require.NoError(t, b.Set([]byte{1}, []byte{1}))
+		require.NoError(t, b.Set([]byte{0}, []byte{0}))
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	// try to alter the DB with an interrupted transaction
+	err = db.Update(func(txn WritableTx) error {
+		b, err := txn.GetBucketOrCreate([]byte("test"))
+		require.NoError(t, err)
+
+		err = b.Set([]byte{0}, []byte{7})
+		require.NoError(t, err)
+
+		return xerrors.New("testing error")
+	})
+	require.Error(t, err)
+
+	// checks that the DB values are still ok
+	err = db.Update(func(txn WritableTx) error {
+		b, err := txn.GetBucketOrCreate([]byte("test"))
+		require.NoError(t, err)
+
+		var i byte = 0
+		return b.ForEach(func(k, v []byte) error {
+			require.Equal(t, []byte{i}, k)
+			require.Equal(t, []byte{i}, v)
+			i++
+			return nil
+		})
+	})
+	require.NoError(t, err)
+}
+
+func TestPurbBucket_ReOpenClosedDb(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
+	require.NoError(t, err)
+
+	defer os.RemoveAll(dir)
+
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	require.NoError(t, err)
+
+	// set some values in the DB
+	err = db.Update(func(txn WritableTx) error {
+		b, err := txn.GetBucketOrCreate([]byte("test"))
+		require.NoError(t, err)
+
+		require.NoError(t, b.Set([]byte{2}, []byte{2}))
+		require.NoError(t, b.Set([]byte{1}, []byte{1}))
+		require.NoError(t, b.Set([]byte{0}, []byte{0}))
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	err = db.Close()
+	require.NoError(t, err)
+
+	// re-open DB file
+	newdb, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	require.NoError(t, err)
+
+	// checks that the DB values are still ok
+	err = newdb.Update(func(txn WritableTx) error {
+		b, err := txn.GetBucketOrCreate([]byte("test"))
+		require.NoError(t, err)
+
+		var i byte = 0
+		return b.ForEach(func(k, v []byte) error {
+			require.Equal(t, []byte{i}, k)
+			require.Equal(t, []byte{i}, v)
+			i++
+			return nil
+		})
+	})
+	require.NoError(t, err)
+
+	err = db.Close()
+	require.NoError(t, err)
+}
+
+func TestPurbBucket_Scan(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
+	require.NoError(t, err)
+
+	defer os.RemoveAll(dir)
+
+	db, err := NewDB(filepath.Join(dir, "test.Db"), false)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
