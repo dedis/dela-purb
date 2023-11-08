@@ -10,7 +10,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const delaTestDir = "dela-core-kv"
+const delaTestDir = "dela-core-Kv"
 
 func TestPurbDB_OpenClose(t *testing.T) {
 	dir, err := os.MkdirTemp(os.TempDir(), delaTestDir)
@@ -181,7 +181,7 @@ func TestPurbBucket_Scan(t *testing.T) {
 		err = b.Scan([]byte{}, func(k, v []byte) error {
 			return xerrors.New("callback error")
 		})
-		require.EqualError(t, err, "callback error")
+		require.ErrorContains(t, err, "callback error")
 
 		return nil
 	})

@@ -1,5 +1,7 @@
 package kv
 
+import "golang.org/x/xerrors"
+
 // A transaction is a list of {key, value}
 
 // dpTx implements kv.ReadableTx and kv.WritableTx
@@ -13,7 +15,7 @@ type dpTx struct {
 func (tx *dpTx) GetBucket(name []byte) Bucket {
 	bucket, found := tx.db[string(name)]
 	if found {
-		return &dpBucket{bucket}
+		return bucket
 	}
 
 	return nil
@@ -22,12 +24,23 @@ func (tx *dpTx) GetBucket(name []byte) Bucket {
 // GetBucketOrCreate implements kv.WritableTx. It creates the bucket if it does
 // not exist and then return it.
 func (tx *dpTx) GetBucketOrCreate(name []byte) (Bucket, error) {
-	_, found := tx.db[string(name)]
-	if !found {
-		tx.db[string(name)] = make(map[string][]byte)
+	if name == nil {
+		return nil, xerrors.New("create bucket failed: bucket name required")
 	}
 
-	return &dpBucket{kv: tx.db[string(name)]}, nil
+	if len(name) == 0 {
+		return nil, xerrors.New("create bucket failed: bucket name required")
+	}
+
+	_, found := tx.db[string(name)]
+	if !found {
+		tx.db[string(name)] = &dpBucket{
+			make(kv),
+			kOrder{},
+		}
+	}
+
+	return tx.db[string(name)], nil
 }
 
 // OnCommit implements store.Transaction. It registers a callback that is called

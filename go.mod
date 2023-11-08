@@ -7,6 +7,7 @@ require (
 	go.dedis.ch/dela v0.0.0-20231011144949-4677467c030c
 	go.dedis.ch/kyber/v3 v3.1.1-0.20231024084410-31ea167adbbb
 	go.dedis.ch/libpurb v0.0.0-20231107160354-ffba29c17caf
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 )
 

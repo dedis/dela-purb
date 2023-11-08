@@ -11,7 +11,7 @@ import (
 )
 
 // bucket   // key   // value
-type db map[string]map[string][]byte
+type db map[string]*dpBucket
 
 // DB is the DELA/PURB implementation of the KV database.
 //
@@ -95,7 +95,9 @@ func (p *purbDB) Update(fn func(WritableTx) error) error {
 		return err
 	}
 
-	tx.onCommit()
+	if tx.onCommit != nil {
+		tx.onCommit()
+	}
 
 	return nil
 }
@@ -122,6 +124,11 @@ func (p *purbDB) deserialize(input *bytes.Buffer) error {
 	decoder := gob.NewDecoder(input)
 
 	err := decoder.Decode(&p.db)
+
+	for _, x := range p.db {
+		x.updateIndex()
+	}
+
 	return err
 }
 
