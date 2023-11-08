@@ -164,12 +164,13 @@ func TestPurbBucket_Scan(t *testing.T) {
 		require.NoError(t, b.Set([]byte{0}, []byte{0}))
 
 		var i byte = 0
-		b.Scan(nil, func(k, v []byte) error {
+		err = b.Scan(nil, func(k, v []byte) error {
 			require.Equal(t, []byte{i}, k)
 			require.Equal(t, []byte{i}, v)
 			i += 7
 			return nil
 		})
+		require.NoError(t, err)
 		require.Equal(t, byte(14), i)
 
 		err = b.Scan([]byte{1}, func(k, v []byte) error {

@@ -44,7 +44,7 @@ func (b *Blob) Decode(blob []byte) ([]byte, error) {
 	success, decrypted, err := b.purb.Decode(blob)
 
 	if !success {
-		xerrors.Errorf("Failed to decrypt blob", err)
+		err = xerrors.Errorf("Failed to decrypt blob: %v", err)
 	}
 
 	return decrypted, err

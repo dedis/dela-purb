@@ -27,11 +27,10 @@ type purbDB struct {
 // NewDB opens a new database to the given file.
 func NewDB(path string, purbIsOn bool) (DB, error) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
-	defer f.Close()
-
 	if err != nil {
 		return nil, xerrors.Errorf("failed to open DB file: %v", err)
 	}
+	defer f.Close()
 
 	stats, _ := f.Stat()
 	s := stats.Size()
@@ -87,12 +86,14 @@ func (p *purbDB) Update(fn func(WritableTx) error) error {
 	tx := &dpTx{db: p.db}
 
 	err := fn(tx)
-
 	if err != nil {
 		return err
 	}
 
-	p.savePurbified()
+	err = p.savePurbified()
+	if err != nil {
+		return err
+	}
 
 	tx.onCommit()
 
