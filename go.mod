@@ -1,4 +1,4 @@
-module purb-db
+module go.dedis.ch/purb-db
 
 go 1.21
 
