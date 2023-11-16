@@ -1,3 +1,4 @@
+// Blob is a wrapper around libpurb.Purb
 package kv
 
 import (
@@ -9,39 +10,31 @@ import (
 	"go.dedis.ch/kyber/v3/util/random"
 )
 
-type Blob struct {
-	purb *libpurb.Purb
-}
+const numberOfRecipients = 1
 
 // NewBlob creates a new blob
-func NewBlob() *Blob {
-	suitesInfo := getSuiteInfo()
-	simplified := true
-
+func NewBlob(keypair []key.Pair) *libpurb.Purb {
 	p := libpurb.NewPurb(
-		suitesInfo,
-		simplified,
+		getSuiteInfo(),
+		false,
 		random.New(),
 	)
+	p.Recipients = createRecipients(keypair)
 
-	p.Recipients = createRecipients(1)
-
-	return &Blob{
-		purb: p,
-	}
+	return p
 }
 
 // Encode encodes a slice of bytes into a blob
-func (b *Blob) Encode(data []byte) ([]byte, error) {
-	err := b.purb.Encode(data)
-	blob := b.purb.ToBytes()
+func Encode(purb *libpurb.Purb, data []byte) ([]byte, error) {
+	err := purb.Encode(data)
+	blob := purb.ToBytes()
 
 	return blob, err
 }
 
 // Decode decodes a blob into a slice of bytes
-func (b *Blob) Decode(blob []byte) ([]byte, error) {
-	success, decrypted, err := b.purb.Decode(blob)
+func Decode(purb *libpurb.Purb, blob []byte) ([]byte, error) {
+	success, decrypted, err := purb.Decode(blob)
 
 	if !success {
 		err = xerrors.Errorf("Failed to decrypt blob: %v", err)
@@ -71,19 +64,27 @@ func getSuiteInfo() libpurb.SuiteInfoMap {
 }
 
 // see example in libpurb
-func createRecipients(n int) []libpurb.Recipient {
-	decs := make([]libpurb.Recipient, 0)
+func createRecipients(keypair []key.Pair) []libpurb.Recipient {
+	r := make([]libpurb.Recipient, 0)
 	suites := []libpurb.Suite{curve25519.NewBlakeSHA256Curve25519(true)}
+
+	if len(keypair) < numberOfRecipients {
+		keypair = make([]key.Pair, 0)
+	}
+
 	for _, suite := range suites {
-		for i := 0; i < n; i++ {
-			pair := key.NewKeyPair(suite)
-			decs = append(decs, libpurb.Recipient{
+		for i := 0; i < numberOfRecipients; i++ {
+			if len(keypair) < numberOfRecipients {
+				keypair = append(keypair, *key.NewKeyPair(suite))
+			}
+
+			r = append(r, libpurb.Recipient{
 				SuiteName:  suite.String(),
 				Suite:      suite,
-				PublicKey:  pair.Public,
-				PrivateKey: pair.Private,
+				PublicKey:  keypair[i].Public,
+				PrivateKey: keypair[i].Private,
 			})
 		}
 	}
-	return decs
+	return r
 }

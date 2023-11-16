@@ -6,8 +6,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.dedis.ch/dela v0.0.0-20231011144949-4677467c030c
 	go.dedis.ch/kyber/v3 v3.1.1-0.20231024084410-31ea167adbbb
-	go.dedis.ch/libpurb v0.0.0-20231107160354-ffba29c17caf
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
+	go.dedis.ch/libpurb v0.0.0-20231108133532-c70e1b84b632
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 )
 
@@ -32,7 +32,7 @@ require (
 	go.dedis.ch/fixbuf v1.0.3 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

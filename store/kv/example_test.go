@@ -14,7 +14,7 @@ func ExampleBucket_Scan() {
 
 	defer os.RemoveAll(dir)
 
-	db, err := NewDB(filepath.Join(dir, "example.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "example.Db"), false)
 	if err != nil {
 		panic("failed to open Db: " + err.Error())
 	}
