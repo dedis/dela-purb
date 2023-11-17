@@ -1,4 +1,4 @@
-// Package kv defines the abstraction for a key/value database.
+// Package Kv defines the abstraction for a key/value database.
 //
 // The package also implements a default database implementation that is using
 // bbolt as the engine (https://github.com/etcd-io/bbolt).

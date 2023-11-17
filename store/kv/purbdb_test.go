@@ -10,46 +10,46 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const dbTestDir = "db-kv"
+const purbDbTestDir = "purb-db-kv"
 
-func TestDb_OpenClose(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_OpenClose(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Close()
 	require.NoError(t, err)
 }
 
-func TestDb_OpenCloseReopen(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_OpenCloseReopen(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Close()
 	require.NoError(t, err)
 
 	//reopen
-	db, err = LoadDB(filepath.Join(dir, "test.Db"), false, nil)
+	db, err = LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
 	require.NoError(t, err)
 
 	err = db.Close()
 	require.NoError(t, err)
 }
 
-func TestDb_UpdateAndView(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_UpdateAndView(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	ch := make(chan struct{})
@@ -81,13 +81,13 @@ func TestDb_UpdateAndView(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_GetBucket(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_GetBucket(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Update(func(tx WritableTx) error {
@@ -105,13 +105,13 @@ func TestDb_GetBucket(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_GetSetDelete(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_GetSetDelete(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -137,13 +137,13 @@ func TestDb_GetSetDelete(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_SetReopenGet(t *testing.T) {
+func TestPurbDb_SetReopenGet(t *testing.T) {
 	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -161,7 +161,7 @@ func TestDb_SetReopenGet(t *testing.T) {
 	require.NoError(t, err)
 
 	//reopen
-	db, err = LoadDB(filepath.Join(dir, "test.Db"), false, keypair)
+	db, err = LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -181,13 +181,13 @@ func TestDb_SetReopenGet(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_ForEach(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_ForEach(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -209,13 +209,13 @@ func TestDb_ForEach(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_ForEachAborted(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_ForEachAborted(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	// set some values in the DB
@@ -259,13 +259,13 @@ func TestDb_ForEachAborted(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_ReOpenClosedDb(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_ReOpenClosedDb(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	// set some values in the DB
@@ -285,7 +285,7 @@ func TestDb_ReOpenClosedDb(t *testing.T) {
 	require.NoError(t, err)
 
 	// re-open DB file
-	newdb, err := LoadDB(filepath.Join(dir, "test.Db"), false, nil)
+	newdb, err := LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
 	require.NoError(t, err)
 
 	// checks that the DB values are still ok
@@ -307,13 +307,13 @@ func TestDb_ReOpenClosedDb(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDb_Scan(t *testing.T) {
-	dir, err := os.MkdirTemp(os.TempDir(), dbTestDir)
+func TestPurbDb_Scan(t *testing.T) {
+	dir, err := os.MkdirTemp(os.TempDir(), purbDbTestDir)
 	require.NoError(t, err)
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), false)
+	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
