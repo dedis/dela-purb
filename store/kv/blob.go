@@ -13,7 +13,7 @@ import (
 const numberOfRecipients = 1
 
 // NewBlob creates a new blob
-func NewBlob(keypair []key.Pair) *libpurb.Purb {
+func NewBlob(keypair []*key.Pair) *libpurb.Purb {
 	p := libpurb.NewPurb(
 		getSuiteInfo(),
 		false,
@@ -64,18 +64,15 @@ func getSuiteInfo() libpurb.SuiteInfoMap {
 }
 
 // see example in libpurb
-func createRecipients(keypair []key.Pair) []libpurb.Recipient {
+func createRecipients(keypair []*key.Pair) []libpurb.Recipient {
 	r := make([]libpurb.Recipient, 0)
 	suites := []libpurb.Suite{curve25519.NewBlakeSHA256Curve25519(true)}
-
-	if len(keypair) < numberOfRecipients {
-		keypair = make([]key.Pair, 0)
-	}
 
 	for _, suite := range suites {
 		for i := 0; i < numberOfRecipients; i++ {
 			if len(keypair) < numberOfRecipients {
-				keypair = append(keypair, *key.NewKeyPair(suite))
+				pair := key.NewKeyPair(suite)
+				keypair = append(keypair, pair)
 			}
 
 			r = append(r, libpurb.Recipient{

@@ -4,23 +4,30 @@
 package controller
 
 import (
+	"go.dedis.ch/kyber/v3/util/key"
 	"path/filepath"
 
 	"go.dedis.ch/dela/cli"
 	"go.dedis.ch/dela/cli/node"
-	"go.dedis.ch/dela/core/store/kv"
+	"go.dedis.ch/purb-db/store/kv"
 	"golang.org/x/xerrors"
 )
 
 // MinimalController is a CLI controller to inject a key/value database.
 //
 // - implements node.Initializer
-type minimalController struct{}
+type minimalController struct {
+	isPurbOn bool
+	keys     []*key.Pair
+}
 
 // NewController returns a minimal controller that will inject a key/value
 // database.
-func NewController() node.Initializer {
-	return minimalController{}
+func NewController(isPurbOn bool) node.Initializer {
+	return minimalController{
+		isPurbOn,
+		nil,
+	}
 }
 
 // SetCommands implements node.Initializer. It does not register any command.
@@ -29,9 +36,12 @@ func (m minimalController) SetCommands(builder node.Builder) {}
 // OnStart implements node.Initializer. It opens the database in a file using
 // the config path as the base.
 func (m minimalController) OnStart(flags cli.Flags, inj node.Injector) error {
-	db, err := kv.New(filepath.Join(flags.String("config"), "dela.db"))
+	db, keys, err := kv.NewDB(filepath.Join(flags.String("config"), "dela.db"), m.isPurbOn)
 	if err != nil {
 		return xerrors.Errorf("db: %v", err)
+	}
+	if len(keys) == 1 {
+		copy(m.keys, keys)
 	}
 
 	inj.Inject(db)

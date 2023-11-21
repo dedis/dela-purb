@@ -37,7 +37,7 @@ type purbDB struct {
 }
 
 // NewDB opens a new database to the given file.
-func NewDB(path string, purbIsOn bool) (DB, []key.Pair, error) {
+func NewDB(path string, purbIsOn bool) (DB, []*key.Pair, error) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, nil, xerrors.Errorf("failed to open DB file: %v", err)
@@ -57,14 +57,14 @@ func NewDB(path string, purbIsOn bool) (DB, []key.Pair, error) {
 	}
 
 	var b *libpurb.Purb = nil
-	keypair := make([]key.Pair, 0)
+	keypair := make([]*key.Pair, 0)
 	if purbIsOn {
 		b = NewBlob(nil)
 		pair := key.Pair{
 			Public:  b.Recipients[0].PublicKey,
 			Private: b.Recipients[0].PrivateKey,
 		}
-		keypair = append(keypair, pair)
+		keypair = append(keypair, &pair)
 	}
 
 	p := &purbDB{
@@ -78,7 +78,7 @@ func NewDB(path string, purbIsOn bool) (DB, []key.Pair, error) {
 }
 
 // LoadDB opens a database from a given file.
-func LoadDB(path string, purbIsOn bool, keypair []key.Pair) (DB, error) {
+func LoadDB(path string, purbIsOn bool, keypair []*key.Pair) (DB, error) {
 	var b *libpurb.Purb = nil
 	if purbIsOn {
 		b = NewBlob(keypair)
