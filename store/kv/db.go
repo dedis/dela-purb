@@ -6,9 +6,9 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
-	"go.dedis.ch/kyber/v3/util/key"
 	"go.dedis.ch/libpurb/libpurb"
 	"golang.org/x/xerrors"
 )
@@ -37,74 +37,51 @@ type purbDB struct {
 }
 
 // NewDB opens a new database to the given file.
-func NewDB(path string, purbIsOn bool) (DB, []*key.Pair, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
+func NewDB(path string, purbIsOn bool) (DB, error) {
+	var filePath string
+	if purbIsOn {
+		filePath = filepath.Join(path, "purb.db")
+	} else {
+		filePath = filepath.Join(path, "kv.db")
+	}
+
+	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		return nil, nil, xerrors.Errorf("failed to open DB file: %v", err)
+		return nil, xerrors.Errorf("failed to open DB file: %v", err)
 	}
 	defer f.Close()
+
+	var b *libpurb.Purb = nil
+	if purbIsOn {
+		b = NewBlob(path)
+	}
+
+	p := &purbDB{
+		dbFile:   filePath,
+		bucketDb: newBucketDb(),
+		purbIsOn: purbIsOn,
+		blob:     b,
+	}
 
 	stats, _ := f.Stat()
 	s := stats.Size()
 	if s > 0 {
-		return nil, nil, xerrors.New("failed to create DB file: file already exists")
-	}
-
-	var data = make([]byte, s)
-	l, err := f.Read(data)
-	if int64(l) != 0 || err != nil {
-		return nil, nil, xerrors.Errorf("failed to read DB file: %v", err)
-	}
-
-	var b *libpurb.Purb = nil
-	keypair := make([]*key.Pair, 0)
-	if purbIsOn {
-		b = NewBlob(nil)
-		pair := key.Pair{
-			Public:  b.Recipients[0].PublicKey,
-			Private: b.Recipients[0].PrivateKey,
+		err = p.load()
+		if err != nil {
+			return nil, xerrors.Errorf("failed to load DB file: %v", err)
 		}
-		keypair = append(keypair, &pair)
 	}
-
-	p := &purbDB{
-		dbFile:   path,
-		bucketDb: newBucketDb(),
-		purbIsOn: purbIsOn,
-		blob:     b,
-	}
-
-	return p, keypair, nil
-}
-
-// LoadDB opens a database from a given file.
-func LoadDB(path string, purbIsOn bool, keypair []*key.Pair) (DB, error) {
-	var b *libpurb.Purb = nil
-	if purbIsOn {
-		b = NewBlob(keypair)
-	}
-
-	p := &purbDB{
-		dbFile:   path,
-		bucketDb: newBucketDb(),
-		purbIsOn: purbIsOn,
-		blob:     b,
-	}
-
-	err := p.load()
-	if err != nil {
-		return nil, err
-	}
-
 	return p, nil
 }
 
 // View implements kv.DB. It executes the read-only transaction in the context
 // of the database.
 func (p *purbDB) View(fn func(ReadableTx) error) error {
-	tx := &dpTx{db: p.bucketDb, new: newBucketDb()}
+	tx := &dpTx{db: &p.bucketDb, new: newBucketDb()}
 
+	tx.db.RLock()
 	err := fn(tx)
+	tx.db.RUnlock()
 
 	if err != nil {
 		return err
@@ -116,9 +93,12 @@ func (p *purbDB) View(fn func(ReadableTx) error) error {
 // Update implements kv.DB. It executes the writable transaction in the context
 // of the database.
 func (p *purbDB) Update(fn func(WritableTx) error) error {
-	tx := &dpTx{db: p.bucketDb, new: newBucketDb()}
+	tx := &dpTx{db: &p.bucketDb, new: newBucketDb()}
 
+	tx.db.RLock()
 	err := fn(tx)
+	tx.db.RUnlock()
+
 	if err != nil {
 		return err
 	}

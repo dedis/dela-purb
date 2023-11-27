@@ -2,7 +2,6 @@ package kv
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,7 +16,7 @@ func TestPurbDb_OpenClose(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Close()
@@ -29,14 +28,14 @@ func TestPurbDb_OpenCloseReopen(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Close()
 	require.NoError(t, err)
 
 	//reopen
-	db, err = LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
+	db, err = NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Close()
@@ -49,7 +48,7 @@ func TestPurbDb_UpdateAndView(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	ch := make(chan struct{})
@@ -87,7 +86,7 @@ func TestPurbDb_GetBucket(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(tx WritableTx) error {
@@ -111,7 +110,7 @@ func TestPurbDb_GetSetDelete(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -143,7 +142,7 @@ func TestPurbDb_SetReopenGet(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -161,7 +160,7 @@ func TestPurbDb_SetReopenGet(t *testing.T) {
 	require.NoError(t, err)
 
 	//reopen
-	db, err = LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
+	db, err = NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -187,7 +186,7 @@ func TestPurbDb_ForEach(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {
@@ -215,7 +214,7 @@ func TestPurbDb_ForEachAborted(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	// set some values in the DB
@@ -265,7 +264,7 @@ func TestPurbDb_ReOpenClosedDb(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, keypair, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	// set some values in the DB
@@ -285,11 +284,11 @@ func TestPurbDb_ReOpenClosedDb(t *testing.T) {
 	require.NoError(t, err)
 
 	// re-open DB file
-	newdb, err := LoadDB(filepath.Join(dir, "test.Db"), true, keypair)
+	NewDB, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	// checks that the DB values are still ok
-	err = newdb.Update(func(txn WritableTx) error {
+	err = NewDB.Update(func(txn WritableTx) error {
 		b, err := txn.GetBucketOrCreate([]byte("test"))
 		require.NoError(t, err)
 
@@ -313,7 +312,7 @@ func TestPurbDb_Scan(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "test.Db"), true)
+	db, err := NewDB(dir, true)
 	require.NoError(t, err)
 
 	err = db.Update(func(txn WritableTx) error {

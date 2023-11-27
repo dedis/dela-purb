@@ -3,7 +3,6 @@ package kv
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 func ExampleBucket_Scan() {
@@ -14,7 +13,7 @@ func ExampleBucket_Scan() {
 
 	defer os.RemoveAll(dir)
 
-	db, _, err := NewDB(filepath.Join(dir, "example.Db"), false)
+	db, err := NewDB(dir, false)
 	if err != nil {
 		panic("failed to open Db: " + err.Error())
 	}

@@ -9,7 +9,7 @@ import (
 
 // dpTx implements kv.ReadableTx and kv.WritableTx
 type dpTx struct {
-	db       bucketDb
+	db       *bucketDb
 	new      bucketDb
 	onCommit func()
 }

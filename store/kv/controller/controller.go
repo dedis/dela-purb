@@ -4,9 +4,6 @@
 package controller
 
 import (
-	"go.dedis.ch/kyber/v3/util/key"
-	"path/filepath"
-
 	"go.dedis.ch/dela/cli"
 	"go.dedis.ch/dela/cli/node"
 	"go.dedis.ch/purb-db/store/kv"
@@ -17,16 +14,22 @@ import (
 //
 // - implements node.Initializer
 type minimalController struct {
-	isPurbOn bool
-	keys     []*key.Pair
+	purbIsOn bool
 }
 
-// NewController returns a minimal controller that will inject a key/value
-// database.
-func NewController(isPurbOn bool) node.Initializer {
+// NewController returns a minimal controller
+// that will inject a key/value database.
+func NewController() node.Initializer {
 	return minimalController{
-		isPurbOn,
-		nil,
+		purbIsOn: true,
+	}
+}
+
+// NewControllerWithoutPurb returns a minimal controller without PURB
+// that will inject a key/value database.
+func NewControllerWithoutPurb() node.Initializer {
+	return minimalController{
+		purbIsOn: false,
 	}
 }
 
@@ -36,12 +39,9 @@ func (m minimalController) SetCommands(builder node.Builder) {}
 // OnStart implements node.Initializer. It opens the database in a file using
 // the config path as the base.
 func (m minimalController) OnStart(flags cli.Flags, inj node.Injector) error {
-	db, keys, err := kv.NewDB(filepath.Join(flags.String("config"), "dela.db"), m.isPurbOn)
+	db, err := kv.NewDB(flags.String("config"), m.purbIsOn)
 	if err != nil {
 		return xerrors.Errorf("db: %v", err)
-	}
-	if len(keys) == 1 {
-		copy(m.keys, keys)
 	}
 
 	inj.Inject(db)
