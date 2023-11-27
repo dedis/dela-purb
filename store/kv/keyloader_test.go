@@ -9,24 +9,25 @@ import (
 	"testing"
 )
 
-const keyloaderTestDir = "key-loader"
+const keyTestDir = "key-loader"
+const keyTestFile = "test.keys"
 
 func TestNewKeysLoader(t *testing.T) {
-	keyDir, err := os.MkdirTemp(os.TempDir(), keyloaderTestDir)
+	keyDir, err := os.MkdirTemp(os.TempDir(), keyTestDir)
 	require.NoError(t, err)
 
-	keyPath := filepath.Join(keyDir, "test.keys")
+	keyPath := filepath.Join(keyDir, keyTestFile)
 	defer os.RemoveAll(keyPath)
 
 	loader := NewKeysLoader(keyPath)
 	require.Equal(t, loader.path, keyPath)
 }
 
-func Test_fileLoader_Save(t *testing.T) {
-	keyDir, err := os.MkdirTemp(os.TempDir(), keyloaderTestDir)
+func TestKeysloaderSave(t *testing.T) {
+	keyDir, err := os.MkdirTemp(os.TempDir(), keyTestDir)
 	require.NoError(t, err)
 
-	keyPath := filepath.Join(keyDir, "test.keys")
+	keyPath := filepath.Join(keyDir, keyTestFile)
 	defer os.RemoveAll(keyPath)
 
 	loader := NewKeysLoader(keyPath)
@@ -44,11 +45,11 @@ func Test_fileLoader_Save(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func Test_fileLoader_Load(t *testing.T) {
-	keyDir, err := os.MkdirTemp(os.TempDir(), keyloaderTestDir)
+func TestKeysloaderLoad(t *testing.T) {
+	keyDir, err := os.MkdirTemp(os.TempDir(), keyTestDir)
 	require.NoError(t, err)
 
-	keyPath := filepath.Join(keyDir, "test.keys")
+	keyPath := filepath.Join(keyDir, keyTestFile)
 	defer os.RemoveAll(keyPath)
 
 	loader := NewKeysLoader(keyPath)
