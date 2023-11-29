@@ -6,6 +6,7 @@ import (
 	"go.dedis.ch/kyber/v3/util/key"
 	"go.dedis.ch/libpurb/libpurb"
 	"golang.org/x/xerrors"
+	"path/filepath"
 
 	"go.dedis.ch/kyber/v3/util/random"
 )
@@ -13,13 +14,13 @@ import (
 const numberOfRecipients = 1
 
 // NewBlob creates a new blob
-func NewBlob(keypair []key.Pair) *libpurb.Purb {
+func NewBlob(path string) *libpurb.Purb {
 	p := libpurb.NewPurb(
 		getSuiteInfo(),
 		false,
 		random.New(),
 	)
-	p.Recipients = createRecipients(keypair)
+	p.Recipients = createRecipients(path)
 
 	return p
 }
@@ -64,27 +65,33 @@ func getSuiteInfo() libpurb.SuiteInfoMap {
 }
 
 // see example in libpurb
-func createRecipients(keypair []key.Pair) []libpurb.Recipient {
+func createRecipients(path string) []libpurb.Recipient {
 	r := make([]libpurb.Recipient, 0)
-	suites := []libpurb.Suite{curve25519.NewBlakeSHA256Curve25519(true)}
+	suite := []libpurb.Suite{curve25519.NewBlakeSHA256Curve25519(true)}
 
-	if len(keypair) < numberOfRecipients {
-		keypair = make([]key.Pair, 0)
-	}
-
-	for _, suite := range suites {
-		for i := 0; i < numberOfRecipients; i++ {
-			if len(keypair) < numberOfRecipients {
-				keypair = append(keypair, *key.NewKeyPair(suite))
-			}
-
-			r = append(r, libpurb.Recipient{
-				SuiteName:  suite.String(),
-				Suite:      suite,
-				PublicKey:  keypair[i].Public,
-				PrivateKey: keypair[i].Private,
-			})
+	keysPath := filepath.Join(path, "purb.keys")
+	loader := NewKeysLoader(keysPath)
+	keypair := make([]key.Pair, numberOfRecipients)
+	err := loader.Load(&keypair)
+	if err != nil {
+		// cannot load keys, create new ones
+		for i := range keypair {
+			keypair[i] = *key.NewKeyPair(suite[0])
+		}
+		err := loader.Save(&keypair)
+		if err != nil {
+			panic(err)
 		}
 	}
+
+	for i := 0; i < numberOfRecipients; i++ {
+		r = append(r, libpurb.Recipient{
+			SuiteName:  suite[0].String(),
+			Suite:      suite[0],
+			PublicKey:  keypair[i].Public,
+			PrivateKey: keypair[i].Private,
+		})
+	}
+
 	return r
 }
