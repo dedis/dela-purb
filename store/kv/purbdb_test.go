@@ -72,7 +72,8 @@ func TestPurbDb_UpdateAndView(t *testing.T) {
 		bucket := txn.GetBucket([]byte("bucket"))
 		require.NotNil(t, bucket)
 
-		value := bucket.Get([]byte("ping"))
+		value, err := bucket.Get([]byte("ping"))
+		require.NoError(t, err)
 		require.Equal(t, []byte("pong"), value)
 
 		return nil
@@ -119,15 +120,18 @@ func TestPurbDb_GetSetDelete(t *testing.T) {
 
 		require.NoError(t, b.Set([]byte("ping"), []byte("pong")))
 
-		value := b.Get([]byte("ping"))
+		value, err := b.Get([]byte("ping"))
+		require.NoError(t, err)
 		require.Equal(t, []byte("pong"), value)
 
-		value = b.Get([]byte("pong"))
+		value, err = b.Get([]byte("pong"))
+		require.Error(t, err)
 		require.Nil(t, value)
 
 		require.NoError(t, b.Delete([]byte("ping")))
 
-		value = b.Get([]byte("ping"))
+		value, err = b.Get([]byte("ping"))
+		require.Error(t, err)
 		require.Nil(t, value)
 
 		return nil
@@ -167,7 +171,8 @@ func TestPurbDb_SetReopenGet(t *testing.T) {
 		b := txn.GetBucket([]byte("bucket"))
 		require.NotNil(t, b)
 
-		value := b.Get([]byte("ping"))
+		value, err := b.Get([]byte("ping"))
+		require.NoError(t, err)
 		require.Equal(t, []byte("pong"), value)
 
 		return nil

@@ -12,7 +12,7 @@ import "go.dedis.ch/dela/core/store"
 type Bucket interface {
 	// Get reads the key from the bucket and returns the value, or nil if the
 	// key does not exist.
-	Get(key []byte) []byte
+	Get(key []byte) ([]byte, error)
 
 	// Set assigns the value to the provided key.
 	Set(key, value []byte) error
