@@ -24,12 +24,12 @@ func (b *dpBucket) updateIndex() {
 
 // Get implements kv.Bucket. It returns the value associated to the key, or nil
 // if it does not exist.
-func (b *dpBucket) Get(key []byte) []byte {
+func (b *dpBucket) Get(key []byte) ([]byte, error) {
 	v, found := b.Kv[string(key)]
 	if found {
-		return v
+		return v, nil
 	}
-	return nil
+	return nil, xerrors.Errorf("failed to find key %v in bucket", string(key))
 }
 
 // Set implements kv.Bucket. It sets the provided key to the value.
