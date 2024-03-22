@@ -39,7 +39,7 @@ func (m minimalController) SetCommands(builder node.Builder) {}
 // OnStart implements node.Initializer. It opens the database in a file using
 // the config path as the base.
 func (m minimalController) OnStart(flags cli.Flags, inj node.Injector) error {
-	db, err := kv.NewDB(flags.String("config"), m.purbIsOn)
+	db, err := purbkv.NewDB(flags.String("config"), m.purbIsOn)
 	if err != nil {
 		return xerrors.Errorf("db: %v", err)
 	}
@@ -51,7 +51,7 @@ func (m minimalController) OnStart(flags cli.Flags, inj node.Injector) error {
 
 // OnStop implements node.Initializer. It closes the database.
 func (m minimalController) OnStop(inj node.Injector) error {
-	var db kv.DB
+	var db purbkv.DB
 	err := inj.Resolve(&db)
 	if err != nil {
 		return xerrors.Errorf("injector: %v", err)

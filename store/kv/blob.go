@@ -1,5 +1,5 @@
 // Blob is a wrapper around libpurb.Purb
-package kv
+package purbkv
 
 import (
 	"go.dedis.ch/kyber/v3/group/curve25519"
