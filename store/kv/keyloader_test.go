@@ -1,4 +1,4 @@
-package kv
+package purbkv
 
 import (
 	"github.com/stretchr/testify/require"

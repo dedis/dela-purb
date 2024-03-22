@@ -1,4 +1,4 @@
-package kv
+package purbkv
 
 import (
 	"golang.org/x/exp/maps"

@@ -4,7 +4,7 @@
 // bbolt as the engine (https://github.com/etcd-io/bbolt).
 //
 // Documentation Last Review: 08.10.2020
-package kv
+package purbkv
 
 import "go.dedis.ch/dela/core/store"
 
